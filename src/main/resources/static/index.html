@@ -9,29 +9,31 @@
 </head>
 <body>
 <div class="app">
-    <!-- ===== 側邊導覽 ===== -->
     <aside class="sidebar">
         <div class="brand">
             <span class="logo">🩺</span>
-            <div>
-                <div class="name">健康管理平台</div>
-                <div class="sub">Health Intelligence</div>
-            </div>
+            <div><div class="name">健康管理平台</div><div class="sub">Health Intelligence v2</div></div>
         </div>
         <nav class="nav">
+            <div class="nav-section">總覽</div>
             <button class="nav-item active" data-view="dashboard"><span class="ic">📊</span>總覽儀表板</button>
+            <div class="nav-section">記錄</div>
+            <button class="nav-item" data-view="nlp"><span class="ic">🗣️</span>語意智能日誌</button>
             <button class="nav-item" data-view="healthlog"><span class="ic">😴</span>健康日誌</button>
             <button class="nav-item" data-view="body"><span class="ic">⚖️</span>身體數據</button>
             <button class="nav-item" data-view="vitals"><span class="ic">❤️</span>生命徵象</button>
             <button class="nav-item" data-view="diary"><span class="ic">📔</span>健康日記</button>
+            <div class="nav-section">智能分析</div>
+            <button class="nav-item" data-view="clinic"><span class="ic">🏥</span>智慧診療室</button>
+            <button class="nav-item" data-view="insights"><span class="ic">💡</span>洞察分析</button>
             <button class="nav-item" data-view="trends"><span class="ic">📈</span>趨勢分析</button>
             <button class="nav-item" data-view="analysis"><span class="ic">🔬</span>資訊增益</button>
+            <div class="nav-section">輸出</div>
             <button class="nav-item" data-view="reports"><span class="ic">📄</span>報表匯出</button>
         </nav>
-        <div class="nav-foot">v2.0 ｜ 決策樹風險評估<br>© 2026 Health Platform</div>
+        <div class="nav-foot">純演算法智能引擎<br>無外部 AI API ｜ © 2026</div>
     </aside>
 
-    <!-- ===== 主內容 ===== -->
     <div class="main">
         <header class="topbar">
             <div>
@@ -39,38 +41,60 @@
                 <div class="crumb" id="pageCrumb">即時健康狀態總覽</div>
             </div>
             <div class="topbar-actions">
+                <div class="user-box">
+                    <span class="avatar" id="userAvatar">示</span>
+                    <select id="userSelect"></select>
+                    <button class="btn btn-ghost btn-sm" id="addUserBtn">＋新使用者</button>
+                </div>
                 <button class="btn btn-excel btn-sm" id="topExcel">⬇ Excel</button>
-                <button class="btn btn-pdf btn-sm" id="topPdf">⬇ PDF 報告</button>
+                <button class="btn btn-pdf btn-sm" id="topPdf">⬇ PDF</button>
             </div>
         </header>
 
         <div class="content">
 
-            <!-- ========== 視圖：總覽儀表板 ========== -->
+            <!-- ===== 總覽儀表板 ===== -->
             <section class="view active" id="view-dashboard">
-                <div id="dashError" class="error-state hidden">
-                    ⚠️ 無法連線後端服務。<button class="btn btn-ghost btn-sm" id="retryDash">重試</button>
-                </div>
-
-                <div class="kpi-grid" id="kpiGrid"><!-- KPI 卡動態產生 --></div>
+                <div id="dashError" class="error-state hidden">⚠️ 無法連線後端服務。<button class="btn btn-ghost btn-sm" id="retryDash">重試</button></div>
+                <div class="kpi-grid" id="kpiGrid"></div>
 
                 <div class="grid-2">
                     <div class="panel">
                         <div class="section-title">🧮 綜合健康評估</div>
                         <div class="score-ring">
-                            <div class="ring" id="scoreRing"><div class="inner">
-                                <div class="num" id="scoreNum">—</div><div class="lab" id="scoreGrade">分數</div>
-                            </div></div>
+                            <div class="ring" id="scoreRing"><div class="inner"><div class="num" id="scoreNum">—</div><div class="lab" id="scoreGrade">分數</div></div></div>
                             <div>
-                                <div style="font-size:13px;color:var(--muted)">決策樹風險等級</div>
+                                <div class="muted-tip">決策樹風險等級</div>
                                 <div style="margin:6px 0"><span class="badge badge-gray" id="dashRisk">—</span></div>
-                                <div style="font-size:12px;color:var(--muted)" id="scoreHint"></div>
+                                <div class="muted-tip" id="scoreHint"></div>
                             </div>
                         </div>
                     </div>
+                    <div class="panel" style="padding:0;border:none;background:transparent;box-shadow:none">
+                        <div class="coach-card steady" id="coachCard">
+                            <div class="c-emoji" id="coachEmoji">🙂</div>
+                            <div class="c-title" id="coachTitle">健康教練</div>
+                            <div class="c-msg" id="coachMsg">載入中…</div>
+                            <div class="c-sug" id="coachSug"></div>
+                            <div class="c-reason" id="coachReason"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-3">
+                    <div class="panel"><div class="section-title">🩸 風險分布</div><canvas id="riskDonut" height="160"></canvas></div>
+                    <div class="panel"><div class="section-title">⚖️ 體重趨勢（近30天）</div><canvas id="weightMini" height="160"></canvas></div>
+                    <div class="panel"><div class="section-title">💓 收縮壓趨勢（近30天）</div><canvas id="bpMini" height="160"></canvas></div>
+                </div>
+
+                <div class="grid-2">
                     <div class="panel">
-                        <div class="section-title">💡 健康建議</div>
-                        <ul class="advice" id="adviceList"><li>載入中…</li></ul>
+                        <div class="section-title">🌦️ 今日環境關聯 <button class="btn btn-ghost btn-sm" id="refreshEnv" style="margin-left:auto">更新定位</button></div>
+                        <div id="envBox"><div class="muted-tip">載入中…</div></div>
+                    </div>
+                    <div class="panel">
+                        <div class="section-title">📌 個人基準線警示</div>
+                        <div id="baselineAlertBox"><div class="muted-tip">載入中…</div></div>
                     </div>
                 </div>
 
@@ -80,7 +104,32 @@
                 </div>
             </section>
 
-            <!-- ========== 視圖：健康日誌 ========== -->
+            <!-- ===== 語意智能日誌 ===== -->
+            <section class="view" id="view-nlp">
+                <div class="grid-2">
+                    <div class="panel">
+                        <div class="section-title">🗣️ 用白話文記錄今天</div>
+                        <p class="muted-tip">直接打口語，例如：「今天為了趕報告喝了三杯美式，晚上有點心悸，只睡了5小時」。系統會自動抽取健康訊號。</p>
+                        <textarea id="nlpText" placeholder="今天為了趕報告喝了三杯美式，晚上有點心悸…"></textarea>
+                        <div style="display:flex;gap:10px;margin-top:12px">
+                            <button class="btn btn-primary" id="nlpParseBtn">🔍 解析</button>
+                            <button class="btn btn-ghost" id="nlpSaveBtn">💾 存成日記＋帶入數據</button>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <div class="section-title">📦 抽取結果</div>
+                        <div id="nlpEmpty" class="muted-tip">解析後會在此顯示偵測到的關鍵字、推估數值與症狀。</div>
+                        <div id="nlpResult" class="hidden">
+                            <div id="nlpSummary" class="highlight-box"></div>
+                            <div><b>偵測訊號</b><div id="nlpTags" style="margin-top:6px"></div></div>
+                            <div class="extract-grid" id="nlpExtract"></div>
+                            <canvas id="nlpChart" height="150" style="margin-top:14px"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== 健康日誌 ===== -->
             <section class="view" id="view-healthlog">
                 <div class="grid-2">
                     <div class="panel">
@@ -97,95 +146,52 @@
                         <div id="riskResult" class="risk-result hidden">
                             <div style="font-weight:700">判定結果：<span id="riskBadge" class="badge">—</span></div>
                             <div class="reasoning" id="reasoning"></div>
-                            <div class="decision-path">
-                                <div class="path-title">🌳 決策樹判斷路徑</div>
-                                <ol id="pathList"></ol>
-                            </div>
+                            <div class="decision-path"><div class="path-title">🌳 決策樹判斷路徑</div><ol id="pathList"></ol></div>
                         </div>
                     </div>
                     <div class="panel">
                         <div class="section-title">📋 歷史紀錄</div>
-                        <div class="filter-bar">
-                            <label>風險篩選
-                                <select id="riskFilter">
-                                    <option value="">全部</option><option value="低">低</option>
-                                    <option value="中">中</option><option value="高">高</option>
-                                </select>
-                            </label>
-                        </div>
+                        <div class="filter-bar"><label>風險篩選<select id="riskFilter"><option value="">全部</option><option value="低">低</option><option value="中">中</option><option value="高">高</option></select></label></div>
                         <div id="logEmpty" class="empty hidden">尚無紀錄</div>
-                        <div class="table-wrap">
-                            <table id="logTable">
-                                <thead><tr><th>日期</th><th>睡眠</th><th>步數</th><th>心情</th><th>風險</th><th>操作</th></tr></thead>
-                                <tbody id="logBody"></tbody>
-                            </table>
-                        </div>
+                        <div class="table-wrap"><table id="logTable"><thead><tr><th>日期</th><th>睡眠</th><th>步數</th><th>心情</th><th>風險</th><th>操作</th></tr></thead><tbody id="logBody"></tbody></table></div>
                     </div>
                 </div>
             </section>
 
-            <!-- ========== 視圖：身體數據 ========== -->
+            <!-- ===== 身體數據 ===== -->
             <section class="view" id="view-body">
                 <div class="grid-2">
                     <div class="panel">
                         <div class="section-title">⚖️ 記錄身體數據</div>
                         <form id="bodyForm">
                             <label>日期<input type="date" id="bodyDate"></label>
-                            <div class="form-row">
-                                <label>身高（cm）<input type="number" id="heightCm" step="0.1" placeholder="例如 170"></label>
-                                <label>體重（kg）<input type="number" id="weightKg" step="0.1" placeholder="例如 65"></label>
-                            </div>
-                            <label>喝水量（ml）<input type="number" id="waterMl" min="0" placeholder="例如 2000"></label>
+                            <div class="form-row"><label>身高（cm）<input type="number" id="heightCm" step="0.1" placeholder="170"></label><label>體重（kg）<input type="number" id="weightKg" step="0.1" placeholder="65"></label></div>
+                            <label>喝水量（ml）<input type="number" id="waterMl" min="0" placeholder="2000"></label>
                             <button type="submit" class="btn btn-primary">儲存</button>
                         </form>
                     </div>
-                    <div class="panel">
-                        <div class="section-title">📋 身體數據紀錄</div>
-                        <div class="table-wrap">
-                            <table><thead><tr><th>日期</th><th>身高</th><th>體重</th><th>BMI</th><th>喝水(ml)</th><th>操作</th></tr></thead>
-                                <tbody id="bodyBody"></tbody></table>
-                        </div>
-                    </div>
+                    <div class="panel"><div class="section-title">📋 身體數據紀錄</div><div class="table-wrap"><table><thead><tr><th>日期</th><th>身高</th><th>體重</th><th>BMI</th><th>喝水</th><th>操作</th></tr></thead><tbody id="bodyBody"></tbody></table></div></div>
                 </div>
             </section>
 
-            <!-- ========== 視圖：生命徵象 ========== -->
+            <!-- ===== 生命徵象 ===== -->
             <section class="view" id="view-vitals">
                 <div class="grid-2">
                     <div class="panel">
                         <div class="section-title">❤️ 記錄生命徵象</div>
                         <form id="vitalForm">
                             <label>日期<input type="date" id="vitalDate"></label>
-                            <div class="form-row">
-                                <label>收縮壓（高壓）<input type="number" id="systolic" placeholder="例如 120"></label>
-                                <label>舒張壓（低壓）<input type="number" id="diastolic" placeholder="例如 80"></label>
-                            </div>
-                            <div class="form-row">
-                                <label>心率（bpm）<input type="number" id="heartRate" placeholder="例如 72"></label>
-                                <label>體溫（℃）<input type="number" id="bodyTemp" step="0.1" placeholder="例如 36.5"></label>
-                            </div>
-                            <div class="form-row">
-                                <label>血糖（mg/dL）<input type="number" id="bloodSugar" placeholder="例如 95"></label>
-                                <label>量測情境
-                                    <select id="measureContext">
-                                        <option value="空腹">空腹</option><option value="飯後">飯後</option><option value="隨機">隨機</option>
-                                    </select>
-                                </label>
-                            </div>
+                            <div class="form-row"><label>收縮壓<input type="number" id="systolic" placeholder="120"></label><label>舒張壓<input type="number" id="diastolic" placeholder="80"></label></div>
+                            <div class="form-row"><label>心率<input type="number" id="heartRate" placeholder="72"></label><label>體溫<input type="number" id="bodyTemp" step="0.1" placeholder="36.5"></label></div>
+                            <div class="form-row"><label>血糖<input type="number" id="bloodSugar" placeholder="95"></label><label>量測情境<select id="measureContext"><option>空腹</option><option>飯後</option><option>隨機</option></select></label></div>
                             <button type="submit" class="btn btn-primary">儲存</button>
                         </form>
                     </div>
-                    <div class="panel">
-                        <div class="section-title">📋 生命徵象紀錄</div>
-                        <div class="table-wrap">
-                            <table><thead><tr><th>日期</th><th>血壓</th><th>心率</th><th>體溫</th><th>血糖</th><th>情境</th><th>操作</th></tr></thead>
-                                <tbody id="vitalBody"></tbody></table>
-                        </div>
-                    </div>
+                    <div class="panel"><div class="section-title">📋 生命徵象紀錄</div><div class="table-wrap"><table><thead><tr><th>日期</th><th>血壓</th><th>心率</th><th>體溫</th><th>血糖</th><th>情境</th><th>操作</th></tr></thead><tbody id="vitalBody"></tbody></table></div></div>
                 </div>
             </section>
 
-            <!-- ========== 視圖：健康日記 ========== -->
+            <!-- ===== 健康日記 ===== -->
             <section class="view" id="view-diary">
                 <div class="grid-2">
                     <div class="panel">
@@ -193,85 +199,92 @@
                         <form id="diaryForm">
                             <label>日期<input type="date" id="diaryDate"></label>
                             <label>標題<input type="text" id="diaryTitle" placeholder="今日健康紀錄"></label>
-                            <label>內容<textarea id="diaryContent" placeholder="記錄今天的身心狀況、飲食、運動…" required></textarea></label>
-                            <div class="form-row">
-                                <label>情緒標籤<input type="text" id="moodTag" placeholder="開心 / 焦慮 / 疲憊"></label>
-                                <label>症狀標籤（逗號分隔）<input type="text" id="symptomTags" placeholder="頭痛,失眠"></label>
-                            </div>
+                            <label>內容<textarea id="diaryContent" placeholder="記錄今天的身心狀況…" required></textarea></label>
+                            <div class="form-row"><label>情緒標籤<input type="text" id="moodTag" placeholder="開心 / 焦慮"></label><label>症狀標籤<input type="text" id="symptomTags" placeholder="頭痛,失眠"></label></div>
                             <button type="submit" class="btn btn-primary">儲存日記</button>
                         </form>
                     </div>
+                    <div class="panel"><div class="section-title">📖 日記列表</div><div id="diaryEmpty" class="empty hidden">尚無日記</div><div id="diaryList"></div></div>
+                </div>
+            </section>
+
+            <!-- ===== 智慧診療室 ===== -->
+            <section class="view" id="view-clinic">
+                <div class="grid-2">
                     <div class="panel">
-                        <div class="section-title">📖 日記列表</div>
-                        <div id="diaryEmpty" class="empty hidden">尚無日記</div>
-                        <div id="diaryList"></div>
+                        <div class="section-title">🏥 智慧診療室</div>
+                        <p class="muted-tip">勾選症狀或用白話描述，系統結合你的歷史數據給出可能病因、建議科別與自我照護。僅供參考，非醫療診斷。</p>
+                        <div><b>常見症狀</b><div id="symptomChips" style="margin-top:8px"></div></div>
+                        <label style="margin-top:14px">補充描述（選填）<textarea id="clinicText" placeholder="例如：早上起來頭很痛，還有點想吐"></textarea></label>
+                        <button class="btn btn-primary" id="clinicBtn" style="margin-top:12px">🔍 開始評估</button>
+                    </div>
+                    <div class="panel">
+                        <div class="section-title">📋 評估結果</div>
+                        <div id="clinicEmpty" class="muted-tip">選擇症狀後按「開始評估」。</div>
+                        <div id="clinicResult" class="hidden"></div>
                     </div>
                 </div>
             </section>
 
-            <!-- ========== 視圖：趨勢分析 ========== -->
+            <!-- ===== 洞察分析 ===== -->
+            <section class="view" id="view-insights">
+                <div class="panel">
+                    <div class="section-title">📈 健康投資回報率 (ROI) ｜ 本週 vs 上週</div>
+                    <div id="roiHighlights"></div>
+                    <div class="grid-2">
+                        <div><b style="font-size:13px">你的行為投入</b><div id="roiBehaviors"></div></div>
+                        <div><b style="font-size:13px">帶來的結果</b><div id="roiOutcomes"></div></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="section-title">📌 動態專屬基準線（與你自己比較）</div>
+                    <p class="muted-tip">用你自己的長期數據算出專屬正常範圍，偏離才警示，不用大眾死標準。</p>
+                    <div id="baselineFull"></div>
+                </div>
+            </section>
+
+            <!-- ===== 趨勢分析 ===== -->
             <section class="view" id="view-trends">
                 <div class="panel">
                     <div class="section-title">📈 趨勢分析（單一指標精準檢視）</div>
                     <div class="filter-bar">
-                        <label>資料來源
-                            <select id="trendSource">
-                                <option value="health">健康日誌</option>
-                                <option value="body">身體數據</option>
-                                <option value="vital">生命徵象</option>
-                            </select>
-                        </label>
+                        <label>資料來源<select id="trendSource"><option value="health">健康日誌</option><option value="body">身體數據</option><option value="vital">生命徵象</option></select></label>
                         <label>指標<select id="trendMetric"></select></label>
-                        <label>期間
-                            <select id="trendRange">
-                                <option value="7">近 7 天</option>
-                                <option value="30" selected>近 30 天</option>
-                                <option value="90">近 90 天</option>
-                                <option value="custom">自訂區間</option>
-                                <option value="single">單一日期</option>
-                            </select>
-                        </label>
+                        <label>期間<select id="trendRange"><option value="7">近 7 天</option><option value="30" selected>近 30 天</option><option value="90">近 90 天</option><option value="custom">自訂區間</option><option value="single">單一日期</option></select></label>
                         <label id="fromWrap" class="hidden">起<input type="date" id="trendFrom"></label>
                         <label id="toWrap" class="hidden">迄<input type="date" id="trendTo"></label>
-                        <label>彙總
-                            <select id="trendAgg"><option value="raw">原始</option><option value="weekly">週平均</option></select>
-                        </label>
+                        <label>彙總<select id="trendAgg"><option value="raw">原始</option><option value="weekly">週平均(ISO)</option></select></label>
                         <button class="btn btn-primary btn-sm" id="trendApply">套用</button>
                     </div>
                     <div id="trendEmpty" class="empty hidden">此區間查無資料</div>
-                    <canvas id="trendChart" height="120"></canvas>
+                    <canvas id="trendChart" height="110"></canvas>
                 </div>
             </section>
 
-            <!-- ========== 視圖：資訊增益 ========== -->
+            <!-- ===== 資訊增益 ===== -->
             <section class="view" id="view-analysis">
                 <div class="panel">
-                    <div class="section-title">🔬 資訊增益分析（決策樹門檻如何決定）</div>
-                    <p style="color:var(--muted);font-size:13px">用熵與資訊增益實測，找出每個特徵的最佳切分門檻；資訊增益最高者作為決策樹第一層分支。</p>
+                    <div class="section-title">🌳 決策樹結構與門檻</div>
+                    <p class="muted-tip">門檻由資訊增益實測決定，並依「先睡眠→再步數→再心情」多層分支判定風險。</p>
+                    <div id="treeDiagram"></div>
+                </div>
+                <div class="panel">
+                    <div class="section-title">🔬 資訊增益分析</div>
                     <div id="analysisContent"><button class="btn btn-primary btn-sm" id="loadAnalysis">執行分析</button></div>
                 </div>
             </section>
 
-            <!-- ========== 視圖：報表匯出 ========== -->
+            <!-- ===== 報表匯出 ===== -->
             <section class="view" id="view-reports">
                 <div class="grid-2">
-                    <div class="panel">
-                        <div class="section-title">📊 Excel 數據匯出</div>
-                        <p style="color:var(--muted);font-size:13px">匯出健康日誌、身體數據、生命徵象三個工作表的 .xlsx 檔，方便進一步分析。</p>
-                        <button class="btn btn-excel" id="dlExcel">⬇ 下載 Excel (.xlsx)</button>
-                    </div>
-                    <div class="panel">
-                        <div class="section-title">📄 PDF 健康診斷報告書</div>
-                        <p style="color:var(--muted);font-size:13px">產生含綜合評估、各項指標判讀、決策樹路徑與健康建議的 PDF 報告書。</p>
-                        <button class="btn btn-pdf" id="dlPdf">⬇ 下載 PDF 報告</button>
-                    </div>
+                    <div class="panel"><div class="section-title">📊 Excel 數據匯出</div><p class="muted-tip">健康日誌、身體數據、生命徵象三工作表 .xlsx。</p><button class="btn btn-excel" id="dlExcel">⬇ 下載 Excel</button></div>
+                    <div class="panel"><div class="section-title">📄 PDF 健康診斷報告書</div><p class="muted-tip">醫生級報告：綜合評估、生命徵象（含參考範圍）、個人基準線、決策樹路徑、醫囑與教練評語。</p><button class="btn btn-pdf" id="dlPdf">⬇ 下載 PDF 報告</button></div>
                 </div>
             </section>
 
         </div>
     </div>
 </div>
-
 <div id="toast" class="toast hidden"></div>
 <script src="app.js"></script>
 </body>

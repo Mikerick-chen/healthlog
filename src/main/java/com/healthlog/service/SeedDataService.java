@@ -5,9 +5,11 @@ import com.healthlog.entity.BodyMetric;
 import com.healthlog.entity.DiaryEntry;
 import com.healthlog.entity.HealthLog;
 import com.healthlog.entity.VitalSign;
+import com.healthlog.entity.User;
 import com.healthlog.repository.BodyMetricRepository;
 import com.healthlog.repository.DiaryEntryRepository;
 import com.healthlog.repository.HealthLogRepository;
+import com.healthlog.repository.UserRepository;
 import com.healthlog.repository.VitalSignRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,19 +50,25 @@ public class SeedDataService implements CommandLineRunner {
     private final BodyMetricRepository bodyRepo;
     private final VitalSignRepository vitalRepo;
     private final DiaryEntryRepository diaryRepo;
+    private final UserRepository userRepo;
+
+    /** 種子資料歸屬的示範使用者 ID（建立後填入） */
+    private Long demoUserId;
 
     public SeedDataService(HealthLogRepository repository,
                            InformationGainService infoGain,
                            DecisionTreeService decisionTree,
                            BodyMetricRepository bodyRepo,
                            VitalSignRepository vitalRepo,
-                           DiaryEntryRepository diaryRepo) {
+                           DiaryEntryRepository diaryRepo,
+                           UserRepository userRepo) {
         this.repository = repository;
         this.infoGain = infoGain;
         this.decisionTree = decisionTree;
         this.bodyRepo = bodyRepo;
         this.vitalRepo = vitalRepo;
         this.diaryRepo = diaryRepo;
+        this.userRepo = userRepo;
     }
 
     /** 內部用：一筆種子（含設計組別標籤） */
@@ -68,6 +76,16 @@ public class SeedDataService implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        // ---- 0. 建立示範使用者（種子資料歸屬於它；真實新使用者自己的資料為空，§9）----
+        User demo = userRepo.findByName("示範帳號").orElseGet(() -> {
+            User u = new User("示範帳號");
+            u.setLocation("台北");
+            u.setLatitude(25.04);
+            u.setLongitude(121.56);
+            return userRepo.save(u);
+        });
+        demoUserId = demo.getId();
+
         // ---- 1. 生成 90 天規律資料 ----
         List<Seed> seeds = generateSeeds();
 
@@ -78,11 +96,12 @@ public class SeedDataService implements CommandLineRunner {
         InformationGainService.Thresholds t = infoGain.deriveThresholds(samples);
         decisionTree.applyThresholds(t.sleepThreshold(), t.stepsThreshold(), t.moodThreshold());
 
-        // ---- 3. 寫入 DB（僅當為空）+ 回填 risk_level ----
-        if (repository.count() == 0) {
+        // ---- 3. 寫入 DB（僅當示範使用者尚無資料）+ 回填 risk_level ----
+        if (repository.countByUserId(demoUserId) == 0) {
             int high = 0, mid = 0, low = 0;
             for (Seed s : seeds) {
                 HealthLog e = new HealthLog(s.date(), s.sleep(), s.steps(), s.mood());
+                e.setUserId(demoUserId);
                 e = repository.save(e);
                 RiskResult r = decisionTree.classify(e);
                 e.setRiskLevel(r.getRiskLevel());
@@ -114,10 +133,11 @@ public class SeedDataService implements CommandLineRunner {
     private void seedExtras(List<Seed> seeds) {
         Random rnd = new Random(SEED + 1);
 
-        if (bodyRepo.count() == 0) {
+        if (bodyRepo.countByUserId(demoUserId) == 0) {
             double weight = 70.0; // 體重以隨機漫步緩慢變化，呈現趨勢
             for (Seed s : seeds) {
                 BodyMetric b = new BodyMetric();
+                b.setUserId(demoUserId);
                 b.setRecordDate(s.date());
                 b.setHeightCm(170.0);
                 weight += (rnd.nextDouble() - 0.5) * 0.6;       // ±0.3kg/日
@@ -133,9 +153,10 @@ public class SeedDataService implements CommandLineRunner {
             log.info("已寫入 90 筆身體數據種子。");
         }
 
-        if (vitalRepo.count() == 0) {
+        if (vitalRepo.countByUserId(demoUserId) == 0) {
             for (Seed s : seeds) {
                 VitalSign v = new VitalSign();
+                v.setUserId(demoUserId);
                 v.setRecordDate(s.date());
                 switch (s.group()) {
                     case "高" -> {
@@ -166,13 +187,14 @@ public class SeedDataService implements CommandLineRunner {
             log.info("已寫入 90 筆生命徵象種子。");
         }
 
-        if (diaryRepo.count() == 0) {
+        if (diaryRepo.countByUserId(demoUserId) == 0) {
             // 取最近 8 天寫日記示例
             int n = seeds.size();
             String[] moods = {"開心", "平靜", "疲憊", "焦慮", "充實"};
             for (int i = Math.max(0, n - 8); i < n; i++) {
                 Seed s = seeds.get(i);
                 DiaryEntry d = new DiaryEntry();
+                d.setUserId(demoUserId);
                 d.setEntryDate(s.date());
                 d.setTitle("今日健康紀錄");
                 d.setContent(switch (s.group()) {

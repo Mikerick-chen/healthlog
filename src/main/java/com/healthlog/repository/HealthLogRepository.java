@@ -7,17 +7,19 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Repository 分層 — 健康日誌資料存取。
+ * Repository 分層 — 健康日誌資料存取（已依 user_id 隔離，§9）。
  * 透過 Spring Data JPA，自動以參數化查詢避免 SQL Injection（§8 安全）。
  */
 public interface HealthLogRepository extends JpaRepository<HealthLog, Long> {
 
-    /** 依日期由新到舊排序取得全部 */
-    List<HealthLog> findAllByOrderByLogDateDesc();
+    /** 某使用者全部（新→舊） */
+    List<HealthLog> findByUserIdOrderByLogDateDesc(Long userId);
 
-    /** 依日期區間查詢（§10.1 加值：日期區間查詢） */
-    List<HealthLog> findByLogDateBetweenOrderByLogDateAsc(LocalDate start, LocalDate end);
+    /** 某使用者日期區間 */
+    List<HealthLog> findByUserIdAndLogDateBetweenOrderByLogDateAsc(Long userId, LocalDate start, LocalDate end);
 
-    /** 取最新一筆（供 /health-logs/risk 預設計算對象） */
-    HealthLog findFirstByOrderByLogDateDescIdDesc();
+    /** 某使用者最新一筆 */
+    HealthLog findFirstByUserIdOrderByLogDateDescIdDesc(Long userId);
+
+    long countByUserId(Long userId);
 }

@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface DiaryEntryRepository extends JpaRepository<DiaryEntry, Long> {
-    List<DiaryEntry> findAllByOrderByEntryDateDescIdDesc();
-    List<DiaryEntry> findByEntryDateBetweenOrderByEntryDateDesc(LocalDate start, LocalDate end);
+    List<DiaryEntry> findByUserIdOrderByEntryDateDescIdDesc(Long userId);
+    List<DiaryEntry> findByUserIdAndEntryDateBetweenOrderByEntryDateDesc(Long userId, LocalDate start, LocalDate end);
+    long countByUserId(Long userId);
 }

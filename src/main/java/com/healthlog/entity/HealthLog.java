@@ -41,6 +41,10 @@ public class HealthLog {
     @Column(name = "risk_level")
     private String riskLevel;
 
+    /** 資料歸屬使用者（§9 多使用者隔離；新增欄位，不改動 §5 既有欄位） */
+    @Column(name = "user_id")
+    private Long userId;
+
     public HealthLog() {
     }
 
@@ -69,4 +73,7 @@ public class HealthLog {
 
     public String getRiskLevel() { return riskLevel; }
     public void setRiskLevel(String riskLevel) { this.riskLevel = riskLevel; }
+
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
 }

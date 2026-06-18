@@ -1,7 +1,23 @@
-# 智慧健康管理平台
+# 智慧健康管理平台 v2
 
-決策樹健康風險評估 + 身體數據 / 生命徵象 / 日記 / 趨勢分析 / Excel・PDF 報表。
-Java 21 + Spring Boot 3.4 + JPA｜本機 SQLite、正式環境 PostgreSQL（Zeabur）。
+決策樹健康風險評估 + 多使用者 + 智能引擎（NLP / ROI / 基準線 / 教練 / 診療室 / 環境關聯）
++ 身體數據 / 生命徵象 / 日記 / 趨勢分析 / Excel・醫生級 PDF 報告。
+Java 21 + Spring Boot 3.4 + JPA｜本機 SQLite、雲端 SQLite(cloud) 或 PostgreSQL(prod)。
+
+> ⭐ 所有「智能/NLP/診斷」皆為自寫的規則與統計演算法，**未呼叫任何外部 AI API**。
+
+## v2 智能功能一覽
+
+| 功能 | 說明 | 端點 |
+|---|---|---|
+| 多使用者 | 以名稱切換，資料完全隔離；新使用者自動空白起步 | `/users`（X-User-Id 標頭） |
+| 🗣️ 語意智能日誌 | 白話文自動抽取健康關鍵字與數值（咖啡因/睡眠/症狀…） | `POST /nlp/parse` |
+| 💡 健康 ROI | 行為(步數/喝水) vs 結果(體重/心率) 本週 vs 上週 | `GET /insights/roi` |
+| 📌 動態專屬基準線 | 用你自己的數據算正常範圍(z-score)，偏離才警示 | `GET /insights/baseline` |
+| 🤖 自適應情緒教練 | 依生理數據切換溫柔/嚴格/慶祝語氣 | `GET /insights/coach` |
+| 🌦️ 環境關聯 | Open-Meteo 抓天氣/氣壓/PM2.5，與症狀交叉揪地雷 | `GET /environment` |
+| 🏥 智慧診療室 | 症狀→可能病因/科別/自我照護，結合個人數據 | `POST /clinic/diagnose` |
+| 📄 醫生級 PDF | 綜合評估+生命徵象(含參考範圍)+基準線+決策樹+醫囑+教練評語 | `GET /reports/pdf` |
 
 ---
 

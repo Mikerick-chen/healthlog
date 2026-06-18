@@ -4,14 +4,15 @@ import com.healthlog.dto.HealthLogRequest;
 import com.healthlog.dto.RiskResult;
 import com.healthlog.entity.HealthLog;
 import com.healthlog.repository.HealthLogRepository;
+import com.healthlog.security.CurrentUser;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
 
 /**
- * 健康日誌業務服務（Service 分層）。
- * 串接 Repository 與決策樹：新增/修改時即時計算 risk_level 並寫回（持久化為自由發揮，§5）。
+ * 健康日誌業務服務（Service 分層，已依目前使用者隔離資料，§9）。
+ * 新增/修改時即時用決策樹計算 risk_level 並寫回（持久化為自由發揮，§5）。
  */
 @Service
 public class HealthLogService {
@@ -24,33 +25,31 @@ public class HealthLogService {
         this.decisionTree = decisionTree;
     }
 
-    /** 取得全部（新→舊） */
     public List<HealthLog> findAll() {
-        return repository.findAllByOrderByLogDateDesc();
+        return repository.findByUserIdOrderByLogDateDesc(CurrentUser.id());
     }
 
-    /** 依日期區間查詢（§10.1） */
     public List<HealthLog> findByRange(LocalDate start, LocalDate end) {
-        return repository.findByLogDateBetweenOrderByLogDateAsc(start, end);
+        return repository.findByUserIdAndLogDateBetweenOrderByLogDateAsc(CurrentUser.id(), start, end);
     }
 
     public HealthLog findById(Long id) {
-        return repository.findById(id)
+        HealthLog e = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("找不到 id=" + id + " 的紀錄"));
+        ensureOwner(e.getUserId());
+        return e;
     }
 
-    /** 新增：寫入後即時用決策樹算 risk_level 並持久化 */
     public HealthLog create(HealthLogRequest req) {
         LocalDate date = req.getLogDate() != null ? req.getLogDate() : LocalDate.now();
         HealthLog entity = new HealthLog(date, req.getSleepHours(), req.getSteps(), req.getMoodScore());
-        // 先存一次取得 id，再計算風險回寫
+        entity.setUserId(CurrentUser.id());
         entity = repository.save(entity);
         RiskResult r = decisionTree.classify(entity);
         entity.setRiskLevel(r.getRiskLevel());
         return repository.save(entity);
     }
 
-    /** 修改：更新三特徵後重新計算 risk_level */
     public HealthLog update(Long id, HealthLogRequest req) {
         HealthLog entity = findById(id);
         if (req.getLogDate() != null) entity.setLogDate(req.getLogDate());
@@ -63,22 +62,24 @@ public class HealthLogService {
     }
 
     public void delete(Long id) {
-        if (!repository.existsById(id)) {
-            throw new IllegalArgumentException("找不到 id=" + id + " 的紀錄");
-        }
-        repository.deleteById(id);
+        HealthLog e = findById(id); // 含擁有者檢查
+        repository.delete(e);
     }
 
-    /**
-     * 依決策樹計算指定紀錄（或最新一筆）的風險，回傳含判斷依據與決策路徑。
-     * 對應 §7 GET /health-logs/risk。
-     */
+    /** 依決策樹計算指定紀錄（或目前使用者最新一筆）的風險 */
     public RiskResult evaluateRisk(Long id) {
         HealthLog entity = (id != null) ? findById(id)
-                : repository.findFirstByOrderByLogDateDescIdDesc();
+                : repository.findFirstByUserIdOrderByLogDateDescIdDesc(CurrentUser.id());
         if (entity == null) {
             throw new IllegalStateException("尚無任何健康日誌可供風險計算");
         }
         return decisionTree.classify(entity);
+    }
+
+    /** 確認資料屬於目前使用者，避免越權存取 */
+    private void ensureOwner(Long ownerId) {
+        if (ownerId != null && !ownerId.equals(CurrentUser.id())) {
+            throw new IllegalArgumentException("無權存取此筆資料");
+        }
     }
 }

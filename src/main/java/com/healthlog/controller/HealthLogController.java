@@ -6,6 +6,7 @@ import com.healthlog.dto.HealthLogRequest;
 import com.healthlog.dto.RiskResult;
 import com.healthlog.entity.HealthLog;
 import com.healthlog.repository.HealthLogRepository;
+import com.healthlog.service.DecisionTreeService;
 import com.healthlog.service.HealthLogService;
 import com.healthlog.service.InformationGainService;
 import jakarta.validation.Valid;
@@ -35,13 +36,25 @@ public class HealthLogController {
     private final HealthLogService service;
     private final HealthLogRepository repository;
     private final InformationGainService infoGain;
+    private final DecisionTreeService decisionTree;
 
     public HealthLogController(HealthLogService service,
                                HealthLogRepository repository,
-                               InformationGainService infoGain) {
+                               InformationGainService infoGain,
+                               DecisionTreeService decisionTree) {
         this.service = service;
         this.repository = repository;
         this.infoGain = infoGain;
+        this.decisionTree = decisionTree;
+    }
+
+    /** GET /health-logs/tree — 回傳決策樹目前套用的門檻（供前端畫決策樹圖，§6） */
+    @GetMapping("/tree")
+    public java.util.Map<String, Object> tree() {
+        return java.util.Map.of(
+                "t1Sleep", decisionTree.getT1Sleep(),
+                "t2Steps", decisionTree.getT2Steps(),
+                "t3Mood", decisionTree.getT3Mood());
     }
 
     /** GET /health-logs — 取得所有紀錄（可選日期區間 from/to，§10.1） */
@@ -92,7 +105,7 @@ public class HealthLogController {
      */
     @GetMapping("/analysis")
     public AnalysisResult analysis() {
-        List<InformationGainService.Sample> samples = repository.findAll().stream()
+        List<InformationGainService.Sample> samples = service.findAll().stream()
                 .filter(e -> e.getRiskLevel() != null)
                 .map(e -> new InformationGainService.Sample(
                         e.getSleepHours(), e.getSteps(), e.getMoodScore(), e.getRiskLevel()))

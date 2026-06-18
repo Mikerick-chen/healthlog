@@ -9,6 +9,7 @@ import com.healthlog.entity.VitalSign;
 import com.healthlog.repository.BodyMetricRepository;
 import com.healthlog.repository.HealthLogRepository;
 import com.healthlog.repository.VitalSignRepository;
+import com.healthlog.security.CurrentUser;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -42,29 +43,36 @@ public class HealthAssessmentService {
         this.decisionTree = decisionTree;
     }
 
-    /** 對「最新資料」做綜合評估 */
+    /**
+     * 對目前使用者做綜合評估（§8「同日對齊」：以最新健康日誌日期為錨，
+     * 身體數據/生命徵象取「該日期(含)以前最近一筆」，避免拿不同日期的數據混算）。
+     */
     public AssessmentResult assessLatest() {
+        Long uid = CurrentUser.id();
         AssessmentResult r = new AssessmentResult();
-        r.asOfDate = LocalDate.now();
         r.recommendations = new ArrayList<>();
 
-        // 1) 決策樹風險（§6 核心）
-        HealthLog log = healthLogRepo.findFirstByOrderByLogDateDescIdDesc();
+        // 1) 決策樹風險（§6 核心）＝錨點
+        HealthLog log = healthLogRepo.findFirstByUserIdOrderByLogDateDescIdDesc(uid);
+        LocalDate anchor = (log != null) ? log.getLogDate() : LocalDate.now();
+        r.asOfDate = anchor;
         if (log != null) {
             RiskResult rr = decisionTree.classify(log);
             r.decisionTreeRisk = rr.getRiskLevel();
             r.riskDetail = rr;
         }
 
-        // 2) BMI（來自最新身體數據）
-        BodyMetric body = bodyRepo.findFirstByOrderByRecordDateDescIdDesc();
+        // 2) BMI / 水分（同日對齊：錨點日(含)以前最近一筆身體數據）
+        BodyMetric body = bodyRepo.findFirstByUserIdAndRecordDateLessThanEqualOrderByRecordDateDescIdDesc(uid, anchor);
+        if (body == null) body = bodyRepo.findFirstByUserIdOrderByRecordDateDescIdDesc(uid);
         if (body != null) {
             r.bmi = assessBmi(body.getBmi());
             r.water = assessWater(body.getWaterMl());
         }
 
-        // 3) 生命徵象（最新一筆）
-        VitalSign v = vitalRepo.findFirstByOrderByRecordDateDescIdDesc();
+        // 3) 生命徵象（同日對齊）
+        VitalSign v = vitalRepo.findFirstByUserIdAndRecordDateLessThanEqualOrderByRecordDateDescIdDesc(uid, anchor);
+        if (v == null) v = vitalRepo.findFirstByUserIdOrderByRecordDateDescIdDesc(uid);
         if (v != null) {
             r.bloodPressure = assessBloodPressure(v.getSystolic(), v.getDiastolic());
             r.bloodSugar = assessBloodSugar(v.getBloodSugar(), v.getMeasureContext());
