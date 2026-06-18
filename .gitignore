@@ -1,0 +1,16 @@
+# 建置產出（Zeabur 會用 Dockerfile 重新編譯，不需上傳）
+target/
+
+# 本機資料庫與執行期檔案
+*.db
+*.log
+health_logs_seed.sql
+
+# 待刪除暫存資料夾
+_可刪除_部署不需要/
+
+# 雜項
+package-lock.json
+.idea/
+*.iml
+.DS_Store

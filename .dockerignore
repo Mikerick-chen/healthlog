@@ -1,0 +1,11 @@
+target/
+*.db
+*.log
+.git/
+.idea/
+*.iml
+health_logs_seed.sql
+package-lock.json
+_可刪除_部署不需要/
+docs/
+README.md
