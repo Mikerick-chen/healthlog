@@ -64,4 +64,23 @@ class DecisionTreeServiceTest {
         RiskResult r = tree.classify(7L, 4.5, 2000, 3);
         assertTrue(r.getDecisionPath().size() >= 3, "決策樹應為多層分支，路徑至少三步");
     }
+
+    @Test
+    void A4_未校準時信心值為null() {
+        RiskResult r = tree.classify(8L, 4.5, 2000, 3);
+        assertNull(r.getConfidence(), "未呼叫 calibrateConfidence 前信心值應為 null");
+    }
+
+    @Test
+    void A4_校準後純葉節點信心為100() {
+        // 高風險葉(A)：兩筆皆標籤「高」→ 純度 100%
+        tree.calibrateConfidence(java.util.List.of(
+                new com.healthlog.service.InformationGainService.Sample(4.5, 2000, 3, "高"),
+                new com.healthlog.service.InformationGainService.Sample(4.0, 1500, 2, "高"),
+                new com.healthlog.service.InformationGainService.Sample(8.0, 9000, 8, "低"),
+                new com.healthlog.service.InformationGainService.Sample(8.0, 9500, 9, "低")));
+        RiskResult r = tree.classify(9L, 4.5, 2000, 3);
+        assertEquals("高", r.getRiskLevel());
+        assertEquals(100.0, r.getConfidence(), "純葉節點信心應為 100%");
+    }
 }

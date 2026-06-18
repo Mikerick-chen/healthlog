@@ -272,6 +272,22 @@
                     <div class="section-title">🔬 資訊增益分析</div>
                     <div id="analysisContent"><button class="btn btn-primary btn-sm" id="loadAnalysis">執行分析</button></div>
                 </div>
+                <div class="panel">
+                    <div class="section-title">🌲 自動學習決策樹（A1/A2）</div>
+                    <p class="muted-tip">不寫死結構，每個節點以準則自動挑「最佳特徵＋門檻」遞迴長樹（剪枝：深度≤4、葉≥3 筆）。</p>
+                    <div class="filter-bar">
+                        <label>分割準則
+                            <select id="treeCriterion">
+                                <option value="gain_ratio">增益比 (Gain Ratio)</option>
+                                <option value="info_gain">資訊增益 (Info Gain)</option>
+                                <option value="gini">Gini</option>
+                            </select>
+                        </label>
+                        <button class="btn btn-primary btn-sm" id="learnTreeBtn">學習並繪製</button>
+                        <span id="treeAcc" class="muted-tip"></span>
+                    </div>
+                    <div id="learnedTreeBox"></div>
+                </div>
             </section>
 
             <!-- ===== 報表匯出 ===== -->

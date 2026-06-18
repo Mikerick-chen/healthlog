@@ -6,6 +6,7 @@ import com.healthlog.dto.HealthLogRequest;
 import com.healthlog.dto.RiskResult;
 import com.healthlog.entity.HealthLog;
 import com.healthlog.repository.HealthLogRepository;
+import com.healthlog.service.DecisionTreeLearner;
 import com.healthlog.service.DecisionTreeService;
 import com.healthlog.service.HealthLogService;
 import com.healthlog.service.InformationGainService;
@@ -37,15 +38,42 @@ public class HealthLogController {
     private final HealthLogRepository repository;
     private final InformationGainService infoGain;
     private final DecisionTreeService decisionTree;
+    private final DecisionTreeLearner learner;
 
     public HealthLogController(HealthLogService service,
                                HealthLogRepository repository,
                                InformationGainService infoGain,
-                               DecisionTreeService decisionTree) {
+                               DecisionTreeService decisionTree,
+                               DecisionTreeLearner learner) {
         this.service = service;
         this.repository = repository;
         this.infoGain = infoGain;
         this.decisionTree = decisionTree;
+        this.learner = learner;
+    }
+
+    /**
+     * GET /health-logs/learned-tree?criterion=gain_ratio — A1/A2：用使用者目前資料
+     * 遞迴學一棵決策樹（可選準則：info_gain / gain_ratio / gini），回傳樹結構供視覺化。
+     */
+    @GetMapping("/learned-tree")
+    public com.healthlog.dto.LearnedTree learnedTree(
+            @RequestParam(defaultValue = "gain_ratio") String criterion) {
+        List<InformationGainService.Sample> samples = service.findAll().stream()
+                .filter(e -> e.getRiskLevel() != null)
+                .map(e -> new InformationGainService.Sample(
+                        e.getSleepHours(), e.getSteps(), e.getMoodScore(), e.getRiskLevel()))
+                .toList();
+        if (samples.isEmpty()) {
+            throw new IllegalStateException("尚無已分類資料可供學習決策樹");
+        }
+        DecisionTreeLearner.Criterion c;
+        try {
+            c = DecisionTreeLearner.Criterion.valueOf(criterion.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            c = DecisionTreeLearner.Criterion.GAIN_RATIO;
+        }
+        return learner.learn(samples, c, 4, 3); // maxDepth=4, minSamplesLeaf=3（剪枝）
     }
 
     /** GET /health-logs/tree — 回傳決策樹目前套用的門檻（供前端畫決策樹圖，§6） */

@@ -218,6 +218,15 @@ tbody tr:hover { background: var(--brand-light); }
 .ig-bar-track { background: #e2e8f0; border-radius: 999px; height: 14px; overflow: hidden; }
 .ig-bar-fill { height: 100%; background: linear-gradient(90deg,#60a5fa,#2563eb); border-radius: 999px; }
 
+/* 自動學習決策樹（A1/A2）巢狀渲染 */
+.ltree-node { margin: 5px 0; }
+.ltree-box { display: inline-block; border: 1px solid var(--line); border-radius: 9px; padding: 7px 11px; font-size: 12.5px; background: #fff; box-shadow: var(--shadow); }
+.ltree-box .lt-sub { color: var(--muted); font-size: 11px; }
+.ltree-box.leaf { color: #fff; font-weight: 700; }
+.ltree-box.leaf-低 { background: var(--low); } .ltree-box.leaf-中 { background: var(--mid); } .ltree-box.leaf-高 { background: var(--high); }
+.ltree-children { margin-left: 16px; border-left: 2px dashed #cbd5e1; padding-left: 16px; }
+.ltree-edge { font-size: 11px; color: var(--brand-dark); font-weight: 600; margin: 6px 0 2px; }
+
 /* RWD */
 @media (max-width: 1000px) {
     .app { grid-template-columns: 1fr; }

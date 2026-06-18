@@ -34,6 +34,7 @@ public class NlpParseResult {
     /** 抽取出的可量化資訊，可一鍵回填日誌/身體數據表單 */
     public static class Extracted {
         public Integer caffeineCups;   // 咖啡因杯數
+        public Integer caffeineMg;     // 估算咖啡因攝取量（mg，每杯約 95mg）
         public Double sleepHours;      // 睡眠時數
         public Integer steps;          // 步數
         public Integer waterMl;        // 喝水量

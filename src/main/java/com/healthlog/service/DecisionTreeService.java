@@ -7,7 +7,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * ⭐⭐⭐ 決策樹風險判定服務（本題最核心）。
@@ -45,6 +47,12 @@ public class DecisionTreeService {
     private volatile int    t2Steps = 5000;  // 步數門檻
     private volatile int    t3Mood  = 5;     // 心情門檻
 
+    /** 各葉節點信心值（leafKey → 0~100），由 calibrateConfidence() 以訓練資料純度算出（A4） */
+    private volatile Map<String, Integer> leafConfidence = new HashMap<>();
+
+    /** 走訪結果：風險等級 + 葉節點代號（A–G） */
+    private record Decision(String risk, String leafKey) {}
+
     /** 由 InformationGainService 實測後回填門檻值 */
     public void applyThresholds(double t1Sleep, int t2Steps, int t3Mood) {
         this.t1Sleep = t1Sleep;
@@ -59,59 +67,91 @@ public class DecisionTreeService {
     public int getT3Mood() { return t3Mood; }
 
     /**
-     * 核心：依三特徵走決策樹，回傳風險等級 + 走過的路徑（可視覺化）。
+     * 核心：依三特徵走決策樹，回傳風險等級 + 走過的路徑（可視覺化）+ 信心值（A4）。
      */
     public RiskResult classify(Long logId, double sleepHours, int steps, int moodScore) {
         List<String> path = new ArrayList<>();
-        String risk;
+        Decision d = traverse(sleepHours, steps, moodScore, path);
 
-        // 第一層：睡眠
+        Integer conf = leafConfidence.get(d.leafKey());
+        log.info("決策樹判定 logId={} 睡眠={} 步數={} 心情={} → 風險={}（信心={}）",
+                logId, sleepHours, steps, moodScore, d.risk(), conf == null ? "未校準" : conf + "%");
+        RiskResult r = new RiskResult(logId, d.risk(),
+                new RiskResult.Reasoning(sleepHours, steps, moodScore), path);
+        r.setConfidence(conf == null ? null : conf.doubleValue());
+        return r;
+    }
+
+    /**
+     * 決策樹核心走訪（classify 與 calibrate 共用，避免分支邏輯分歧）。
+     * @param path 不為 null 時逐步寫入可讀路徑；calibrate 傳 null 以靜默走訪。
+     * @return 風險等級 + 葉節點代號
+     */
+    private Decision traverse(double sleepHours, int steps, int moodScore, List<String> path) {
         if (sleepHours < t1Sleep) {
-            path.add(String.format("睡眠 %.1f hr < %.1f → 睡眠不足", sleepHours, t1Sleep));
-            // 第二層：步數
+            add(path, String.format("睡眠 %.1f hr < %.1f → 睡眠不足", sleepHours, t1Sleep));
             if (steps < t2Steps) {
-                path.add(String.format("步數 %d < %d → 活動量低", steps, t2Steps));
-                // 第三層：心情
+                add(path, String.format("步數 %d < %d → 活動量低", steps, t2Steps));
                 if (moodScore < t3Mood) {
-                    path.add(String.format("心情 %d < %d → 情緒低落", moodScore, t3Mood));
-                    risk = "高";
+                    add(path, String.format("心情 %d < %d → 情緒低落", moodScore, t3Mood));
+                    return new Decision("高", "A");
                 } else {
-                    path.add(String.format("心情 %d ≥ %d → 情緒尚可", moodScore, t3Mood));
-                    risk = "中";
+                    add(path, String.format("心情 %d ≥ %d → 情緒尚可", moodScore, t3Mood));
+                    return new Decision("中", "B");
                 }
             } else {
-                path.add(String.format("步數 %d ≥ %d → 活動量正常", steps, t2Steps));
+                add(path, String.format("步數 %d ≥ %d → 活動量正常", steps, t2Steps));
                 if (moodScore < t3Mood) {
                     // ⭐ 中間情況：步數正常但心情差
-                    path.add(String.format("心情 %d < %d → 步數正常但心情差（中間情況）", moodScore, t3Mood));
-                    risk = "中";
+                    add(path, String.format("心情 %d < %d → 步數正常但心情差（中間情況）", moodScore, t3Mood));
+                    return new Decision("中", "C");
                 } else {
-                    path.add(String.format("心情 %d ≥ %d → 情緒佳", moodScore, t3Mood));
-                    risk = "低";
+                    add(path, String.format("心情 %d ≥ %d → 情緒佳", moodScore, t3Mood));
+                    return new Decision("低", "D");
                 }
             }
         } else {
-            path.add(String.format("睡眠 %.1f hr ≥ %.1f → 睡眠足夠", sleepHours, t1Sleep));
-            // 第二層：步數
+            add(path, String.format("睡眠 %.1f hr ≥ %.1f → 睡眠足夠", sleepHours, t1Sleep));
             if (steps < t2Steps) {
-                path.add(String.format("步數 %d < %d → 活動量低", steps, t2Steps));
+                add(path, String.format("步數 %d < %d → 活動量低", steps, t2Steps));
                 if (moodScore < t3Mood) {
-                    path.add(String.format("心情 %d < %d → 情緒低落", moodScore, t3Mood));
-                    risk = "中";
+                    add(path, String.format("心情 %d < %d → 情緒低落", moodScore, t3Mood));
+                    return new Decision("中", "E");
                 } else {
-                    path.add(String.format("心情 %d ≥ %d → 情緒尚可", moodScore, t3Mood));
-                    risk = "低";
+                    add(path, String.format("心情 %d ≥ %d → 情緒尚可", moodScore, t3Mood));
+                    return new Decision("低", "F");
                 }
             } else {
-                path.add(String.format("步數 %d ≥ %d → 活動量正常", steps, t2Steps));
-                path.add("睡眠足夠且步數正常 → 低風險");
-                risk = "低";
+                add(path, String.format("步數 %d ≥ %d → 活動量正常", steps, t2Steps));
+                add(path, "睡眠足夠且步數正常 → 低風險");
+                return new Decision("低", "G");
             }
         }
+    }
 
-        log.info("決策樹判定 logId={} 睡眠={} 步數={} 心情={} → 風險={}", logId, sleepHours, steps, moodScore, risk);
-        return new RiskResult(logId, risk,
-                new RiskResult.Reasoning(sleepHours, steps, moodScore), path);
+    private void add(List<String> path, String step) {
+        if (path != null) path.add(step);
+    }
+
+    /**
+     * A4：以訓練資料計算各葉節點純度→信心值。
+     * 信心 = 落入該葉的樣本中，「真實標籤 == 該葉預測風險」的比例。
+     * 由 SeedDataService 在套用門檻後呼叫（標籤為種子設計組別）。
+     */
+    public void calibrateConfidence(List<InformationGainService.Sample> samples) {
+        Map<String, Integer> match = new HashMap<>();
+        Map<String, Integer> total = new HashMap<>();
+        for (InformationGainService.Sample s : samples) {
+            Decision d = traverse(s.sleepHours(), s.steps(), s.moodScore(), null);
+            total.merge(d.leafKey(), 1, Integer::sum);
+            if (d.risk().equals(s.label())) match.merge(d.leafKey(), 1, Integer::sum);
+        }
+        Map<String, Integer> conf = new HashMap<>();
+        for (String leaf : total.keySet()) {
+            conf.put(leaf, (int) Math.round(match.getOrDefault(leaf, 0) * 100.0 / total.get(leaf)));
+        }
+        this.leafConfidence = conf;
+        log.info("決策樹葉節點信心值已校準：{}", conf);
     }
 
     /** 便利方法：直接對一筆 Entity 分類 */

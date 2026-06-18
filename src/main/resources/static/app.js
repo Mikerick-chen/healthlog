@@ -190,7 +190,7 @@ function renderNlp(r) {
     $('nlpSummary').textContent = r.summary;
     $('nlpTags').innerHTML = r.tags.map(t => `<span class="chip ${t.status}" title="${escapeHtml(t.message)}">${escapeHtml(t.category)}・${escapeHtml(t.keyword)}</span>`).join('') || '<span class="muted-tip">無</span>';
     const ex = r.extracted; const item = (l, v) => v == null ? '' : `<div class="extract-item"><div class="ei-label">${l}</div><div class="ei-val">${v}</div></div>`;
-    $('nlpExtract').innerHTML = item('咖啡因(杯)', ex.caffeineCups) + item('睡眠(hr)', ex.sleepHours) + item('步數', ex.steps) + item('喝水(ml)', ex.waterMl) + item('推估心情', ex.moodGuess) + (ex.symptoms.length ? `<div class="extract-item"><div class="ei-label">症狀</div><div class="ei-val" style="font-size:13px">${ex.symptoms.join('、')}</div></div>` : '');
+    $('nlpExtract').innerHTML = item('咖啡因(杯)', ex.caffeineCups) + item('咖啡因(mg)', ex.caffeineMg) + item('睡眠(hr)', ex.sleepHours) + item('步數', ex.steps) + item('喝水(ml)', ex.waterMl) + item('推估心情', ex.moodGuess) + (ex.symptoms.length ? `<div class="extract-item"><div class="ei-label">症狀</div><div class="ei-val" style="font-size:13px">${ex.symptoms.join('、')}</div></div>` : '');
     if (r.categoryChart.length) drawChart('nlpChart', { type: 'bar', data: { labels: r.categoryChart.map(c => c.category), datasets: [{ label: '命中次數', data: r.categoryChart.map(c => c.count), backgroundColor: '#2563eb' }] }, options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { stepSize: 1 } } } } });
 }
 $('nlpSaveBtn').addEventListener('click', async () => {
@@ -233,7 +233,8 @@ async function showRisk(id) {
         const r = await api('/health-logs/risk?id=' + id);
         $('riskResult').classList.remove('hidden');
         const b = $('riskBadge'); b.textContent = r.riskLevel; b.className = 'badge ' + riskBadge(r.riskLevel);
-        $('reasoning').textContent = `判斷依據 → 睡眠 ${r.reasoning.sleepHours} hr｜步數 ${r.reasoning.steps}｜心情 ${r.reasoning.moodScore}`;
+        const conf = (r.confidence != null) ? `｜判定信心 ${r.confidence}%` : '';
+        $('reasoning').textContent = `判斷依據 → 睡眠 ${r.reasoning.sleepHours} hr｜步數 ${r.reasoning.steps}｜心情 ${r.reasoning.moodScore}${conf}`;
         $('pathList').innerHTML = r.decisionPath.map(s => `<li>${escapeHtml(s)}</li>`).join('');
         $('riskResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (e) { toast(e.message, 'error'); }
@@ -369,6 +370,32 @@ async function loadTree() {
         $('treeDiagram').innerHTML = buildTreeSvg(t.t1Sleep, t.t2Steps, t.t3Mood);
     } catch (e) { $('treeDiagram').innerHTML = `<div class="muted-tip">${escapeHtml(e.message)}</div>`; }
     loadAnalysis();
+    learnTree();
+}
+
+// A1/A2：自動學習決策樹
+$('learnTreeBtn').addEventListener('click', learnTree);
+async function learnTree() {
+    try {
+        const crit = $('treeCriterion').value;
+        const t = await api('/health-logs/learned-tree?criterion=' + crit);
+        $('treeAcc').textContent = `樣本 ${t.sampleCount} 筆｜訓練準確率 ${t.trainingAccuracy}%｜準則 ${t.criterion}`;
+        $('learnedTreeBox').innerHTML = renderTreeNode(t.root, null);
+    } catch (e) { $('learnedTreeBox').innerHTML = `<div class="muted-tip">${escapeHtml(e.message)}</div>`; }
+}
+function renderTreeNode(node, edgeLabel) {
+    if (!node) return '';
+    const edge = edgeLabel ? `<div class="ltree-edge">${edgeLabel}</div>` : '';
+    if (node.leaf) {
+        return `${edge}<div class="ltree-node"><span class="ltree-box leaf leaf-${node.label}">風險：${node.label}　<span style="opacity:.85">(${node.samples} 筆)</span></span></div>`;
+    }
+    const box = `<span class="ltree-box"><b>${node.featureLabel} &lt; ${node.threshold} ?</b>
+        <div class="lt-sub">樣本 ${node.samples}｜不純度 ${node.impurity}｜分數 ${node.splitScore}</div></span>`;
+    return `${edge}<div class="ltree-node">${box}
+        <div class="ltree-children">
+            ${renderTreeNode(node.left, '是（&lt; ' + node.threshold + '）')}
+            ${renderTreeNode(node.right, '否（≥ ' + node.threshold + '）')}
+        </div></div>`;
 }
 function buildTreeSvg(t1, t2, t3) {
     // 簡潔決策樹示意：睡眠→步數→心情→風險

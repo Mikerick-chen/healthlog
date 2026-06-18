@@ -95,6 +95,8 @@ public class SeedDataService implements CommandLineRunner {
                 .toList();
         InformationGainService.Thresholds t = infoGain.deriveThresholds(samples);
         decisionTree.applyThresholds(t.sleepThreshold(), t.stepsThreshold(), t.moodThreshold());
+        // A4：以設計組別為標籤，校準各葉節點信心值
+        decisionTree.calibrateConfidence(samples);
 
         // ---- 3. 寫入 DB（僅當示範使用者尚無資料）+ 回填 risk_level ----
         if (repository.countByUserId(demoUserId) == 0) {

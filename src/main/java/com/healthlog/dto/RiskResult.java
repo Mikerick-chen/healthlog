@@ -12,6 +12,7 @@ public class RiskResult {
     private String riskLevel;          // 低 / 中 / 高
     private Reasoning reasoning;        // 判斷依據（三特徵值）
     private List<String> decisionPath;  // 決策樹走過的每一步（視覺化用）
+    private Double confidence;          // 葉節點信心值 0~100（依訓練資料純度，A4）；未校準時為 null
 
     public RiskResult() {}
 
@@ -42,4 +43,6 @@ public class RiskResult {
     public String getRiskLevel() { return riskLevel; }
     public Reasoning getReasoning() { return reasoning; }
     public List<String> getDecisionPath() { return decisionPath; }
+    public Double getConfidence() { return confidence; }
+    public void setConfidence(Double confidence) { this.confidence = confidence; }
 }

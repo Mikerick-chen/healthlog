@@ -137,9 +137,18 @@ public class InformationGainService {
         int moodT = (int) Math.round(
                 analyzeFeature("mood_score", sub, s -> s.moodScore()).getBestThreshold());
 
+        // A7 生理護欄：把資訊增益選出的門檻夾在臨床合理區間，避免資料巧合切出無意義門檻。
+        double sleepClamped = clamp(sleepT, 5.0, 7.0);
+        int stepsClamped = (int) clamp(stepsT, 3000, 8000);
+        int moodClamped = (int) clamp(moodT, 3, 7);
+        if (sleepClamped != sleepT || stepsClamped != stepsT || moodClamped != moodT) {
+            log.info("A7 生理護欄已修正門檻：睡眠 {}→{}、步數 {}→{}、心情 {}→{}（夾入合理區間）",
+                    sleepT, sleepClamped, stepsT, stepsClamped, moodT, moodClamped);
+        }
+
         log.info("由資訊增益實測導出門檻：T1(睡眠)={}, T2(步數)={}, T3(心情)={}；建議根特徵={}",
-                sleepT, stepsT, moodT, full.getChosenRootFeature());
-        return new Thresholds(sleepT, stepsT, moodT, full.getChosenRootFeature());
+                sleepClamped, stepsClamped, moodClamped, full.getChosenRootFeature());
+        return new Thresholds(sleepClamped, stepsClamped, moodClamped, full.getChosenRootFeature());
     }
 
     private AnalysisResult.FeatureAnalysis featureOf(AnalysisResult r, String name) {
@@ -150,5 +159,10 @@ public class InformationGainService {
 
     private static double round(double v) {
         return Math.round(v * 10000.0) / 10000.0;
+    }
+
+    /** A7：把數值夾在 [lo, hi] 區間內 */
+    private static double clamp(double v, double lo, double hi) {
+        return Math.max(lo, Math.min(hi, v));
     }
 }

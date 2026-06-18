@@ -1,10 +1,3 @@
-# CLAUDE.md — 智慧健康管理平台（HealthLog）專案規範
-
-> 本檔為專案的最高指導原則。在此專案工作時請先讀此檔並嚴格遵守。
-> 程式碼註解、文件、回覆一律使用**繁體中文**。
-
----
-
 ## 1. 專案概觀
 
 智慧健康日誌與風險評估系統（原為期末挑戰 題目A，已升級為世界級多使用者健康管理平台 v2）。
@@ -50,7 +43,7 @@
 | `UserService` / 各 CRUD Service | 使用者與各資料表的增刪改查（皆依 `CurrentUser` 隔離）|
 
 ### 多使用者機制（`security/`）
-- `CurrentUser`：ThreadLocal 保存目前 user id（預設回退示範帳號 id=1）
+- `CurrentUser`：ThreadLocal保存目前 user id（預設回退示範帳號 id=1）
 - `UserContextFilter`：每請求讀 `X-User-Id` 標頭 → 設定 ThreadLocal → 請求結束清除
 - 前端每次 fetch 都帶 `X-User-Id`；新使用者空白起步
 
@@ -72,55 +65,97 @@
 ---
 
 ## 5. 建置 / 執行 / 測試
-```bash
-# 本機開發（dev profile = SQLite，零設定）
+### 本機開發（dev profile = SQLite，零設定）
 mvn spring-boot:run            # → http://localhost:8080
-# 打包與測試
+### 打包與測試
 mvn clean package              # 產出 target/health-log-1.0.0.jar
 mvn test                       # 決策樹單元測試
-```
 
 ## 6. Profiles 與部署
+
 | Profile | DB | 啟用時機 |
-|---|---|---|
+| --- | --- | --- |
 | `dev` | SQLite `healthlog.db` | 本機預設 |
-| `cloud` | SQLite `/app/data/healthlog.db` | Dockerfile 預設（Zeabur，零外部依賴）|
+| `cloud` | SQLite `/app/data/healthlog.db` | Dockerfile 預設（Zeabur，零外部依賴） |
 | `prod` | PostgreSQL | 設 `SPRING_PROFILES_ACTIVE=prod` + `SPRING_DATASOURCE_*` |
-- 伺服器讀 `PORT`、綁 `0.0.0.0`；方言明確指定（避免 dialect 偵測崩潰）。
-- 部署前刪 `_可刪除_部署不需要/`；詳見 `docs/ZEABUR部署指南.md`。
+
+* 伺服器讀 `PORT`、綁 `0.0.0.0`；方言明確指定（避免 dialect 偵測崩潰）。
+* 部署前刪 `_可刪除_部署不需要/`；詳見 `docs/ZEABUR部署指南.md`。
 
 ---
 
 ## 7. 工作模式：PM ＋ 跨界專家編制
 
 以 **PM** 身分運作：遇到需特定專業的任務時，**主動派出對應角色**提供領域意見，再由 PM 收斂成決策；不給籠統答案。
-- 預設「同一回覆內分角色具名發言」（例：【睡眠醫學專家】…）；需並行深度作業時才用 subagent。
-- AI 團隊角色的建議**必須落在自寫規則/統計演算法**（呼應 §2.1，不接外部模型）。
-- 完整名單：`..\gemini-code-1781783208248.md`
 
-### 專家團隊（24 角色 / 4 團隊）
-- **醫療健康**：預防醫學醫師、臨床資訊學專家、行為心理學家、時間生物學家、睡眠醫學專家、運動生理學家、高階臨床營養師、神經內科顧問
-- **AI 演算法**：生醫 NLP 專家、LLM 微調工程師、時序數據科學家、知識圖譜架構師、生物辨識演算法工程師、MLOps 工程師
-- **系統工程**：IoMT 整合、穿戴裝置協定對接、時序資料庫專家、生醫數據視覺化、高併發架構師、資安防禦與滲透測試
-- **法規營運**：SaMD 法規規管、隱私合規架構師(HIPAA/GDPR)、生物資料倫理顧問、敏捷醫療專案經理
+* 預設「同一回覆內分角色具名發言」（例：【睡眠醫學專家】…）；需並行深度作業時才用 subagent。
+* AI 團隊角色的建議**必須落在自寫規則/統計演算法**（呼應 §2.1，不接外部模型）。
 
-### 模組 ↔ 主責角色
-| 模組 | 主責角色 |
-|---|---|
-| 決策樹/資訊增益 | 時序數據科學家、臨床資訊學專家 |
-| 語意日誌 NLP | 生醫 NLP 專家 |
-| 動態基準線/ROI | 時序數據科學家、生物辨識演算法工程師 |
-| 自適應教練 | 行為心理學家 |
-| 智慧診療室 | 預防醫學醫師、神經內科顧問 |
-| 睡眠/步數判讀 | 睡眠醫學專家、運動生理學家、時間生物學家 |
-| 環境關聯 | 臨床資訊學專家、預防醫學醫師 |
-| PDF 報告/營養 | 預防醫學醫師、高階臨床營養師 |
-| 多使用者/部署/效能 | 高併發架構師、時序資料庫專家、IoMT/穿戴整合 |
-| 隱私/法規/倫理/資安 | SaMD 法規、HIPAA/GDPR 合規、生物倫理、資安滲透 |
+### 專家團隊（完整編制）
+
+#### 1. 醫療健康與科學顧問團
+
+* 預防醫學專科醫師 / 家庭醫學科醫師 (General Practitioner)
+* 內分泌與新陳代謝科醫師 (Endocrinologist)
+* 心臟內科醫師 (Cardiologist)
+* 精神科醫師 / 臨床心理師 (Psychiatrist / Clinical Psychologist)
+* 臨床資訊學專家 (Clinical Informatician)
+* 行為心理學家 (Behavioral Psychologist)
+* 時間生物學家 (Chronobiologist)
+* 睡眠醫學專家 (Sleep Medicine Specialist)
+* 運動生理學家 (Exercise Physiologist)
+* 高階臨床營養師 (Clinical Dietitian)
+* 神經內科顧問 (Neurologist Consultant)
+
+#### 2. 人工智慧與智慧計算團隊
+
+* 生醫自然語言處理專家 (Biomedical NLP Specialist)
+* AI 提示詞與整合工程師 (AI Prompt & Integration Engineer)
+* 大型語言模型微調工程師 (LLM Fine-tuning Engineer)
+* 機器學習與演算法工程師 (Machine Learning Engineer)
+* 時序數據科學家 (Time-Series Data Scientist)
+* 知識圖譜架構師 (Knowledge Graph Architect)
+* 生物辨識演算法工程師 (Biometric Algorithm Engineer)
+* 資料工程師 (Data Engineer)
+* 機器學習營運工程師 (MLOps Engineer)
+
+#### 3. 核心工程與全端生態系團隊
+
+* 核心全端工程師 (Core Full-Stack Engineer)
+* 前端架構與互動工程師 (Front-End Architect & Interactive Engineer)
+* 後端與微服務工程師 (Back-End & Microservices Engineer)
+* 醫療物聯網整合工程師 (IoMT Integration Engineer)
+* 穿戴式裝置協定對接工程師 (Wearable Device Protocol Engineer)
+* 資料庫管理師 / 時序資料庫專家 (DBA / Time-Series Database Specialist)
+* 生醫數據視覺化工程師 (Biomedical Data Visualization Engineer)
+* 高併發系統架構師 (High-Concurrency System Architect)
+* 軟體品質測試工程師 (QA Automation Engineer)
+* DevOps / SRE 網站可靠性工程師 (DevOps & SRE)
+
+#### 4. 法規、資安與產品營運團隊
+
+* UI/UX 設計師 (UI/UX Designer)
+* 醫療器材軟體 (SaMD) 法規規管專家 (SaMD Regulatory Affairs Specialist)
+* 國際隱私與合規架構師 / 隱私權顧問 (Privacy & Compliance Advisor - 專精 HIPAA/GDPR)
+* 醫療資訊安全工程師 / 資安防禦與滲透測試工程師 (Medical InfoSec & Penetration Testing Engineer)
+* 生物資料倫理顧問 (Bioethics Consultant)
+* 醫療跨界敏捷專案經理 (Agile Medical Project Manager)
+
+### 專業領域 ↔ 主責角色
+
+| 專業領域 | 系統能力定位 | 涵蓋主責角色 |
+| :--- | :--- | :--- |
+| 一、 臨床決策與行為科學(Clinical & Behavioral Intelligence) | 制定系統底層醫學邏輯、閾值設定、干預策略與知識圖譜基礎。 | • 預防醫學/家庭醫學科醫師• 神經內科/內分泌/心臟內科醫師• 睡眠醫學專家/運動生理學家• 高階臨床營養師• 精神科醫師/臨床心理師• 行為心理學家/時間生物學家• 臨床資訊學專家 |
+| 二、 數據感知與物聯網(Data Acquisition & IoMT) | 解決「資料獲取」，確保感測器、穿戴裝置與醫院系統數據穩定流入。 | • 醫療物聯網整合工程師• 穿戴式裝置協定對接工程師 |
+| 三、 智慧演算與模型驅動(AI & Algorithmic Engine) | 系統大腦，將原始數據轉化為動態基準線、風險預測、語意分析與擬真對話。 | • 生醫自然語言處理專家• AI 提示詞與整合工程師• 大型語言模型微調工程師• 機器學習與演算法工程師• 生物辨識演算法工程師• 時序數據科學家• 知識圖譜架構師 |
+| 四、 核心架構與數據工程(Core Infrastructure & Data Pipeline) | 系統骨幹，支撐龐大運算、解耦微服務、清洗並流轉海量資料。 | • 核心全端/後端與微服務工程師• 高併發系統架構師• 資料工程師• 資料庫管理師/時序資料庫專家• 機器學習營運工程師 (MLOps)• DevOps / SRE 網站可靠性工程師 |
+| 五、 視覺互動與使用者體驗(Visual Interaction & UX) | 將深奧醫學洞察轉譯為低摩擦力、直覺且具備商業價值的介面。 | • UI/UX 設計師• 前端架構與互動工程師• 生醫數據視覺化工程師 |
+| 六、 風險控管、合規與營運(Risk, Compliance & Operations) | 系統盾牌，確保醫療數據隱私、程式碼品質、合法合規，並管控專案節奏。 | • 醫療跨界敏捷專案經理• 軟體品質測試工程師 (QA)• 醫療資訊安全/資安滲透測試工程師• 國際隱私與合規架構師• 醫療器材軟體 (SaMD) 法規規管專家• 生物資料倫理顧問 |
 
 ---
 
 ## 8. 已知待辦（Sprint 2 候選）
-- 完整帳號密碼登入（目前為輕量名稱切換，輸入名稱即可進）→ 資安/合規團隊優先。
-- `ddl-auto=update` 改 Flyway/Liquibase 版本化遷移。
-- 環境資料長期累積後做真正的統計相關性分析。
+
+* 完整帳號密碼登入（目前為輕量名稱切換，輸入名稱即可進）→ 資安/合規團隊優先。
+* `ddl-auto=update` 改 Flyway/Liquibase 版本化遷移。
+* 環境資料長期累積後做真正的統計相關性分析。
